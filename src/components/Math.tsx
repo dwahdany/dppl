@@ -19,9 +19,9 @@ export default function Math({ math, block = false, className = '' }: MathProps)
       );
     }
     return (
-      <div className={className}>
+      <span className={className} style={{ display: 'inline-block' }}>
         <InlineMath math={math} />
-      </div>
+      </span>
     );
   } catch (error) {
     console.error('Error rendering math formula:', error);
