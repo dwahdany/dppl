@@ -12,9 +12,17 @@ interface MathProps {
 export default function Math({ math, block = false, className = '' }: MathProps) {
   try {
     if (block) {
-      return <BlockMath math={math} className={className} />;
+      return (
+        <div className={className}>
+          <BlockMath math={math} />
+        </div>
+      );
     }
-    return <InlineMath math={math} className={className} />;
+    return (
+      <div className={className}>
+        <InlineMath math={math} />
+      </div>
+    );
   } catch (error) {
     console.error('Error rendering math formula:', error);
     return <span className="text-red-500">{math}</span>;
