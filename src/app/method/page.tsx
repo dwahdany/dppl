@@ -163,7 +163,7 @@ export default function MethodPage() {
             </div>
             
             <p className="text-lg text-slate-700">
-              DPPL-Public Top-K often achieves better performance than both DPPL-Mean and DPPL-Public, especially at less strict privacy regimes where more prototypes can be selected per class without compromising privacy.
+                DPPL-Public Top-K can achieve a slightly higher performance than DPPL-Public, albeit with a higher privacy cost. In those regimes DPPL-Mean is usually already better.
             </p>
           </div>
         </section>
