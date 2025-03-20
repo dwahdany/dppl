@@ -113,6 +113,14 @@ export default function MethodPage() {
               <li>Use the selected public samples as prototypes for classification</li>
             </ol>
             
+            <div className="mb-8 flex justify-center">
+              <img 
+                src="/images/public_sampling.png" 
+                alt="DPPL-Public sampling process" 
+                className="max-w-full rounded-lg" 
+              />
+            </div>
+            
             <h3 className="mb-4 mt-8 text-2xl font-semibold">Mathematical Details</h3>
             <div className="mb-6 rounded-lg bg-slate-100 p-4 font-mono">
               <p className="mb-2">1. Feature extraction:</p>
