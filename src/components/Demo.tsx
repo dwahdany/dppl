@@ -36,7 +36,7 @@ interface PrototypeResponse {
 }
 
 export default function Demo() {
-  const [epsilon, setEpsilon] = useState(1);
+  const [epsilon, setEpsilon] = useState(Math.log(0.1));
   const [imbalanceRatio, setImbalanceRatio] = useState(1);
   const [data, setData] = useState<PrototypeResponse | null>(null);
   const [loading, setLoading] = useState(false);
