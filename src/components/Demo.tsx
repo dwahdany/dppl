@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
@@ -41,7 +41,7 @@ export default function Demo() {
   const [data, setData] = useState<PrototypeResponse | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       const response = await fetch('/api/py/generate', {
@@ -54,29 +54,56 @@ export default function Demo() {
           imbalance_ratio: imbalanceRatio,
         }),
       });
-      const newData = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const newData = (await response.json()) as PrototypeResponse;
+      
+      // Validate the response shape
+      if (!isValidPrototypeResponse(newData)) {
+        throw new Error('Invalid response format from server');
+      }
+      
       setData(newData);
     } catch (error) {
       console.error('Error fetching data:', error);
+      setData(null);
     }
     setLoading(false);
-  };
+  }, [epsilon, imbalanceRatio]);
+
+  // Type guard for response validation
+  function isValidPrototypeResponse(data: unknown): data is PrototypeResponse {
+    const response = data as PrototypeResponse;
+    return (
+      response !== null &&
+      typeof response === 'object' &&
+      Array.isArray(response.points) &&
+      Array.isArray(response.prototypes) &&
+      typeof response.accuracy === 'number' &&
+      typeof response.balanced_accuracy === 'number'
+    );
+  }
 
   useEffect(() => {
-    fetchData();
-  }, [epsilon, imbalanceRatio]); // Fetch new data when either parameter changes
+    void fetchData();
+  }, [fetchData]);
 
   const uniqueLabels = data 
     ? Array.from(new Set(data.points.map(p => p.label))).sort((a, b) => a - b)
     : [];
 
-  const colors = [
-    { light: 'rgba(255, 99, 132, 0.15)', dark: 'rgba(255, 99, 132, 1)' },
-    { light: 'rgba(53, 162, 235, 0.15)', dark: 'rgba(53, 162, 235, 1)' },
-    { light: 'rgba(75, 192, 192, 0.15)', dark: 'rgba(75, 192, 192, 1)' },
-    { light: 'rgba(255, 159, 64, 0.15)', dark: 'rgba(255, 159, 64, 1)' },
-    { light: 'rgba(153, 102, 255, 0.15)', dark: 'rgba(153, 102, 255, 1)' },
-  ];
+  const CHART_COLORS = {
+    0: { light: 'rgba(255, 99, 132, 0.15)', dark: 'rgba(255, 99, 132, 1)' },
+    1: { light: 'rgba(53, 162, 235, 0.15)', dark: 'rgba(53, 162, 235, 1)' },
+    2: { light: 'rgba(75, 192, 192, 0.15)', dark: 'rgba(75, 192, 192, 1)' },
+    3: { light: 'rgba(255, 159, 64, 0.15)', dark: 'rgba(255, 159, 64, 1)' },
+    4: { light: 'rgba(153, 102, 255, 0.15)', dark: 'rgba(153, 102, 255, 1)' },
+  } as const;
+
+  const getColor = (index: number) => CHART_COLORS[index % 5 as keyof typeof CHART_COLORS];
 
   const chartData = {
     datasets: data ? [
@@ -84,17 +111,17 @@ export default function Demo() {
       ...uniqueLabels.map((label, i) => ({
         label: `Class ${label}`,
         data: data.points.filter(p => p.label === label).map(p => ({ x: p.x, y: p.y })),
-        backgroundColor: colors[i % colors.length].light,
+        backgroundColor: getColor(i).light,
         pointRadius: 2,
       })),
       // Prototypes for each class
       ...uniqueLabels.map((label, i) => ({
         label: `Prototype ${label}`,
         data: data.prototypes.filter(p => p.label === label).map(p => ({ x: p.x, y: p.y })),
-        backgroundColor: colors[i % colors.length].dark,
+        backgroundColor: getColor(i).dark,
         pointRadius: 10,
-        pointStyle: 'rectRot',
-        borderColor: colors[i % colors.length].dark,
+        pointStyle: 'rectRot' as const,
+        borderColor: getColor(i).dark,
         borderWidth: 2,
       })),
     ] : [],
@@ -134,15 +161,15 @@ export default function Demo() {
     maintainAspectRatio: false,
   };
 
-  const handleSliderChange = (values: number[]) => {
+  const handleSliderChange = useCallback((values: number[]) => {
     const value = values[0] ?? epsilon;
     setEpsilon(value);
-  };
+  }, [epsilon]);
 
-  const handleImbalanceChange = (values: number[]) => {
+  const handleImbalanceChange = useCallback((values: number[]) => {
     const value = values[0] ?? imbalanceRatio;
     setImbalanceRatio(value);
-  };
+  }, [imbalanceRatio]);
 
   return (
     <Card className="w-full max-w-4xl mx-auto">
