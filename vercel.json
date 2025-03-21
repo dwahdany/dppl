@@ -1,14 +1,23 @@
 {
+  "buildCommand": "next build",
   "builds": [
     {
       "src": "api/main.py",
       "use": "@vercel/python"
+    },
+    {
+      "src": "package.json",
+      "use": "@vercel/next"
     }
   ],
   "routes": [
     {
       "src": "/api/py/(.*)",
       "dest": "api/main.py"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/"
     }
   ]
 }
