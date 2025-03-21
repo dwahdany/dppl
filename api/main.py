@@ -1,3 +1,4 @@
+import os
 from typing import List, Tuple
 
 import numpy as np
@@ -6,9 +7,12 @@ from pydantic import BaseModel
 
 app = FastAPI()
 
-# Load the demo data
-DEMO_TSNE = np.load("demo-tsne.npy")
-DEMO_Y = np.load("demo-y.npy")
+# Get the directory where the script is located
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# Load the demo data using absolute paths
+DEMO_TSNE = np.load(os.path.join(SCRIPT_DIR, "demo-tsne.npy"))
+DEMO_Y = np.load(os.path.join(SCRIPT_DIR, "demo-y.npy"))
 
 
 def decay(
