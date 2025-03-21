@@ -17,9 +17,7 @@ pkgs.mkShell {
 
   shellHook = ''
     # Create and activate virtual environment if it doesn't exist
-    if [ ! -d ".venv" ]; then
-      uv venv --python python3.11
-    fi
+    uv venv 
     source .venv/bin/activate
     
     # Install Python dependencies if not already installed
