@@ -11,8 +11,56 @@ DEMO_TSNE = np.load("demo-tsne.npy")
 DEMO_Y = np.load("demo-y.npy")
 
 
+def decay(
+    cls: int | np.ndarray, max_samples: int, num_classes: int, ratio: float = 10
+) -> int:
+    """Calculate exponentially decaying number of samples per class."""
+    decay_rate = -np.log(ratio) / num_classes
+    return np.round(max_samples * np.exp(decay_rate * cls)).astype(int)
+
+
+def give_imbalanced_set(
+    x: np.ndarray, y: np.ndarray, imbalance_ratio: float = 10, seed: int = 42
+):
+    """Create an imbalanced dataset by subsampling classes exponentially."""
+    classes = np.unique(y)
+    X_classes = [x[y == i] for i in classes]
+    rng = np.random.default_rng(seed)
+
+    # Get current samples per class
+    input_samples_per_class = np.asarray([(y == i).sum() for i in classes])
+
+    # Calculate target samples per class with exponential decay
+    output_samples_per_class = decay(
+        np.linspace(0, len(classes), len(classes)),
+        max_samples=input_samples_per_class.min(),
+        num_classes=len(classes),
+        ratio=imbalance_ratio,
+    )
+
+    # Shuffle the class sizes
+    rng.shuffle(output_samples_per_class)
+
+    # Subsample each class
+    x_imbalanced = np.concatenate(
+        [
+            X_classes[i][:num_samples]
+            for i, num_samples in enumerate(output_samples_per_class)
+        ]
+    )
+    y_imbalanced = np.concatenate(
+        [
+            np.repeat(i, num_samples)
+            for i, num_samples in enumerate(output_samples_per_class)
+        ]
+    )
+
+    return x_imbalanced, y_imbalanced
+
+
 class PointsRequest(BaseModel):
     epsilon: float
+    imbalance_ratio: float
 
 
 class Point(BaseModel):
@@ -21,7 +69,7 @@ class Point(BaseModel):
     label: int
 
 
-class PrototypeResponse(BaseModel):
+class PointsResponse(BaseModel):
     points: List[Point]
     prototypes: List[Point]
     accuracy: float
@@ -75,13 +123,67 @@ def read_root():
     return {"message": "DPPL Demo API"}
 
 
-@app.post("/api/py/generate", response_model=PrototypeResponse)
-def generate_points(request: PointsRequest):
-    # Convert TSNE and labels to Point objects
+@app.post("/api/py/generate")
+def generate_points(request: PointsRequest) -> PointsResponse:
+    # Apply imbalance ratio to the data
+    points_tsne, points_y = give_imbalanced_set(
+        DEMO_TSNE, DEMO_Y, imbalance_ratio=request.imbalance_ratio, seed=42
+    )
+
+    # Group points by label
+    unique_labels = np.unique(points_y)
+    points_by_label = {label: points_tsne[points_y == label] for label in unique_labels}
+
+    # Select prototypes based on epsilon
+    prototypes_tsne = []
+    prototypes_y = []
+
+    for label, points in points_by_label.items():
+        if request.epsilon == float("inf"):
+            # Use mean for each class when epsilon is infinite
+            prototype = np.mean(points, axis=0)
+        else:
+            # Add Gaussian noise scaled by epsilon
+            prototype = np.mean(points, axis=0)
+            noise_scale = 1.0 / (request.epsilon * np.sqrt(len(points)))
+            prototype += np.random.normal(0, noise_scale, size=prototype.shape)
+
+        prototypes_tsne.append(prototype)
+        prototypes_y.append(label)
+
+    # Calculate accuracy
+    accuracy = calculate_accuracy(
+        points_tsne, points_y, np.array(prototypes_tsne), np.array(prototypes_y)
+    )
+
+    # Convert to response format
     points = [
         Point(x=float(x), y=float(y), label=int(label))
-        for (x, y), label in zip(DEMO_TSNE, DEMO_Y)
+        for x, y, label in zip(points_tsne[:, 0], points_tsne[:, 1], points_y)
     ]
 
-    prototypes, accuracy = select_prototypes(points, request.epsilon)
-    return PrototypeResponse(points=points, prototypes=prototypes, accuracy=accuracy)
+    # Convert prototypes list to numpy array for slicing
+    prototypes_tsne = np.array(prototypes_tsne)
+    prototypes = [
+        Point(x=float(x), y=float(y), label=int(label))
+        for x, y, label in zip(
+            prototypes_tsne[:, 0], prototypes_tsne[:, 1], prototypes_y
+        )
+    ]
+
+    return PointsResponse(
+        points=points, prototypes=prototypes, accuracy=float(accuracy)
+    )
+
+
+def calculate_accuracy(points, points_labels, prototypes, prototype_labels):
+    # Calculate distances to all prototypes for each point
+    distances = np.array(
+        [np.sum((points - prototype) ** 2, axis=1) for prototype in prototypes]
+    )
+
+    # Predict labels based on closest prototype
+    predicted_labels = prototype_labels[np.argmin(distances, axis=0)]
+
+    # Calculate accuracy
+    return np.mean(predicted_labels == points_labels)

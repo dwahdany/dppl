@@ -36,6 +36,7 @@ interface PrototypeResponse {
 
 export default function Demo() {
   const [epsilon, setEpsilon] = useState(1);
+  const [imbalanceRatio, setImbalanceRatio] = useState(1);
   const [data, setData] = useState<PrototypeResponse | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -49,6 +50,7 @@ export default function Demo() {
         },
         body: JSON.stringify({
           epsilon: epsilon,
+          imbalance_ratio: imbalanceRatio,
         }),
       });
       const newData = await response.json();
@@ -61,7 +63,7 @@ export default function Demo() {
 
   useEffect(() => {
     fetchData();
-  }, [epsilon]); // Fetch new data when epsilon changes
+  }, [epsilon, imbalanceRatio]); // Fetch new data when either parameter changes
 
   const uniqueLabels = data 
     ? Array.from(new Set(data.points.map(p => p.label))).sort((a, b) => a - b)
@@ -136,6 +138,11 @@ export default function Demo() {
     setEpsilon(value);
   };
 
+  const handleImbalanceChange = (values: number[]) => {
+    const value = values[0] ?? imbalanceRatio;
+    setImbalanceRatio(value);
+  };
+
   return (
     <Card className="w-full max-w-4xl mx-auto">
       <CardHeader className="pb-4">
@@ -159,6 +166,21 @@ export default function Demo() {
                   className="w-full"
                 />
               </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">
+                  Imbalance Ratio: {imbalanceRatio.toFixed(1)}x
+                </label>
+                <Slider
+                  value={[imbalanceRatio]}
+                  onValueChange={handleImbalanceChange}
+                  min={1}
+                  max={100}
+                  step={0.1}
+                  className="w-full"
+                />
+              </div>
+
               <Button
                 variant="outline"
                 onClick={() => setEpsilon(epsilon === Infinity ? 1 : Infinity)}
