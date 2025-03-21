@@ -175,6 +175,51 @@ export default function Demo() {
     <Card className="w-full max-w-4xl mx-auto">
       <CardHeader className="pb-4">
         <CardTitle className="text-xl">Interactive Demo: Privacy-Preserving Prototypes</CardTitle>
+        <div className="mt-4 space-y-4 text-sm text-muted-foreground">
+          <p>
+            This demo visualizes privacy-preserving prototypes generated from CIFAR-10 image embeddings using ViT-H/14. 
+            The data points shown are 2D projections created using t-SNE dimensionality reduction from the original high-dimensional embedding space.
+          </p>
+          
+          <div className="bg-muted/10 p-4 rounded-md">
+            <p className="text-xs italic">
+              ⚠️ Disclaimer: This is a simplified demonstration for visualization purposes. The privacy guarantees 
+              shown here are not rigorous as the t-SNE transformation and other aspects of this demo do not 
+              satisfy formal differential privacy requirements.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-8 mt-4">
+            <div className="space-y-2">
+              <p className="font-medium text-foreground">Good Prototypes</p>
+              <div className="h-[200px] w-full relative">
+                <img 
+                  src="/images/good.jpeg" 
+                  alt="Example of good prototypes"
+                  className="rounded-md border object-contain absolute inset-0 w-full h-full"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Good prototypes (squares) are well-centered within their class embeddings (dots), 
+                effectively representing the class distribution.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <p className="font-medium text-foreground">Bad Prototypes</p>
+              <div className="h-[200px] w-full relative">
+                <img 
+                  src="/images/bad.jpeg" 
+                  alt="Example of bad prototypes"
+                  className="rounded-md border object-contain absolute inset-0 w-full h-full"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                With too strict privacy budgets (small ε), excessive noise pushes prototypes away from 
+                their class centers, reducing their effectiveness.
+              </p>
+            </div>
+          </div>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-[250px,1fr] gap-8">

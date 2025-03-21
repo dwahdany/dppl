@@ -48,9 +48,7 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section className="mb-16">
-          <Demo />
-        </section>
+
 
         <section className="mb-16">
           <Card className="overflow-hidden">
@@ -110,6 +108,10 @@ export default function HomePage() {
               </Button>
             </CardContent>
           </Card>
+        </section>
+
+        <section className="mb-16">
+          <Demo />
         </section>
 
         <section className="mb-16">
