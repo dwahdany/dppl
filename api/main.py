@@ -73,6 +73,7 @@ class PointsResponse(BaseModel):
     points: List[Point]
     prototypes: List[Point]
     accuracy: float
+    balanced_accuracy: float
 
 
 def select_prototypes(points: List[Point], epsilon: float) -> Tuple[List[Point], float]:
@@ -118,6 +119,32 @@ def select_prototypes(points: List[Point], epsilon: float) -> Tuple[List[Point],
     return prototypes, accuracy
 
 
+def calculate_accuracies(points, points_labels, prototypes, prototype_labels):
+    # Calculate distances to all prototypes for each point
+    distances = np.array(
+        [np.sum((points - prototype) ** 2, axis=1) for prototype in prototypes]
+    )
+
+    # Predict labels based on closest prototype
+    predicted_labels = prototype_labels[np.argmin(distances, axis=0)]
+
+    # Calculate standard accuracy
+    accuracy = np.mean(predicted_labels == points_labels)
+
+    # Calculate balanced accuracy
+    unique_labels = np.unique(points_labels)
+    class_accuracies = []
+    for label in unique_labels:
+        mask = points_labels == label
+        if np.any(mask):  # only calculate if we have points for this class
+            class_acc = np.mean(predicted_labels[mask] == points_labels[mask])
+            class_accuracies.append(class_acc)
+
+    balanced_accuracy = np.mean(class_accuracies)
+
+    return accuracy, balanced_accuracy
+
+
 @app.get("/api/py/")
 def read_root():
     return {"message": "DPPL Demo API"}
@@ -139,20 +166,17 @@ def generate_points(request: PointsRequest) -> PointsResponse:
     prototypes_y = []
 
     for label, points in points_by_label.items():
-        if request.epsilon == float("inf"):
-            # Use mean for each class when epsilon is infinite
-            prototype = np.mean(points, axis=0)
-        else:
-            # Add Gaussian noise scaled by epsilon
-            prototype = np.mean(points, axis=0)
-            noise_scale = 1.0 / (request.epsilon * np.sqrt(len(points)))
-            prototype += np.random.normal(0, noise_scale, size=prototype.shape)
+        # Add Laplace noise to mean with sensitivity = 2/n
+        prototype = np.mean(points, axis=0)
+        scale = 2.0 / (request.epsilon * len(points))  # sensitivity = 2/n
+        noise = np.random.laplace(0, scale, size=prototype.shape)
+        prototype += noise
 
         prototypes_tsne.append(prototype)
         prototypes_y.append(label)
 
-    # Calculate accuracy
-    accuracy = calculate_accuracy(
+    # Calculate accuracies
+    accuracy, balanced_accuracy = calculate_accuracies(
         points_tsne, points_y, np.array(prototypes_tsne), np.array(prototypes_y)
     )
 
@@ -172,18 +196,8 @@ def generate_points(request: PointsRequest) -> PointsResponse:
     ]
 
     return PointsResponse(
-        points=points, prototypes=prototypes, accuracy=float(accuracy)
+        points=points,
+        prototypes=prototypes,
+        accuracy=float(accuracy),
+        balanced_accuracy=float(balanced_accuracy),
     )
-
-
-def calculate_accuracy(points, points_labels, prototypes, prototype_labels):
-    # Calculate distances to all prototypes for each point
-    distances = np.array(
-        [np.sum((points - prototype) ** 2, axis=1) for prototype in prototypes]
-    )
-
-    # Predict labels based on closest prototype
-    predicted_labels = prototype_labels[np.argmin(distances, axis=0)]
-
-    # Calculate accuracy
-    return np.mean(predicted_labels == points_labels)

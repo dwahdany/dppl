@@ -32,6 +32,7 @@ interface PrototypeResponse {
   points: Point[];
   prototypes: Point[];
   accuracy: number;
+  balanced_accuracy: number;
 }
 
 export default function Demo() {
@@ -49,7 +50,7 @@ export default function Demo() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          epsilon: epsilon,
+          epsilon: Math.exp(epsilon),
           imbalance_ratio: imbalanceRatio,
         }),
       });
@@ -155,13 +156,13 @@ export default function Demo() {
             <div className="space-y-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium">
-                  Privacy Level (ε): {epsilon === Infinity ? '∞' : epsilon.toFixed(2)}
+                  Privacy Level (ε): {Math.exp(epsilon).toFixed(3)}
                 </label>
                 <Slider
-                  value={[epsilon === Infinity ? 10 : epsilon]}
+                  value={[epsilon]}
                   onValueChange={handleSliderChange}
-                  min={0.1}
-                  max={10}
+                  min={Math.log(0.001)}
+                  max={Math.log(10)}
                   step={0.1}
                   className="w-full"
                 />
@@ -181,21 +182,30 @@ export default function Demo() {
                 />
               </div>
 
-              <Button
+              <Button 
+                onClick={fetchData}
+                disabled={loading}
                 variant="outline"
-                onClick={() => setEpsilon(epsilon === Infinity ? 1 : Infinity)}
                 className="w-full"
               >
-                Toggle ∞
+                {loading ? "Regenerating..." : "Regenerate Prototypes"}
               </Button>
             </div>
             
             {data && (
-              <div>
-                <h3 className="text-sm font-medium mb-1">Classification Accuracy</h3>
-                <p className="text-2xl font-bold text-primary">
-                  {(data.accuracy * 100).toFixed(1)}%
-                </p>
+              <div className="space-y-3">
+                <div>
+                  <h3 className="text-sm font-medium mb-1">Standard Accuracy</h3>
+                  <p className="text-2xl font-bold text-primary">
+                    {(data.accuracy * 100).toFixed(1)}%
+                  </p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium mb-1">Balanced Accuracy</h3>
+                  <p className="text-2xl font-bold text-primary">
+                    {(data.balanced_accuracy * 100).toFixed(1)}%
+                  </p>
+                </div>
               </div>
             )}
           </div>
