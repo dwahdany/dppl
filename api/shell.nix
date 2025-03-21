@@ -3,7 +3,7 @@
 pkgs.mkShell {
   buildInputs = with pkgs; [
     # Python
-    python311
+    python312
     uv
     
     # Rust
