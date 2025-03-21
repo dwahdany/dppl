@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import Math from "@/components/Math";
+import Demo from "@/components/Demo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -45,6 +46,10 @@ export default function HomePage() {
               </Button>
             </div>
           </div>
+        </section>
+
+        <section className="mb-16">
+          <Demo />
         </section>
 
         <section className="mb-16">
