@@ -1,5 +1,5 @@
 {
-  "buildCommand": "next build",
+  "framework": "nextjs",
   "builds": [
     {
       "src": "api/main.py",
@@ -13,10 +13,10 @@
   "routes": [
     {
       "src": "/api/py/(.*)",
-      "dest": "api/main.py"
+      "dest": "/api/main.py"
     },
     {
-      "src": "/(.*)",
+      "src": "/((?!api/py/.*).*)",
       "dest": "/"
     }
   ]
