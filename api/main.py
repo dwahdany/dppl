@@ -6,10 +6,13 @@ from pydantic import BaseModel
 
 app = FastAPI()
 
+# Load the demo data
+DEMO_TSNE = np.load("demo-tsne.npy")
+DEMO_Y = np.load("demo-y.npy")
+
 
 class PointsRequest(BaseModel):
     epsilon: float
-    n_points: int = 100
 
 
 class Point(BaseModel):
@@ -24,35 +27,16 @@ class PrototypeResponse(BaseModel):
     accuracy: float
 
 
-def generate_2d_clusters(n_points: int = 100) -> Tuple[List[Point], List[Point]]:
-    # Generate two Gaussian clusters
-    n_per_class = n_points // 2
-
-    # Class 0: centered at (-1, -1)
-    cluster1_x = np.random.normal(-1, 0.3, n_per_class)
-    cluster1_y = np.random.normal(-1, 0.3, n_per_class)
-
-    # Class 1: centered at (1, 1)
-    cluster2_x = np.random.normal(1, 0.3, n_per_class)
-    cluster2_y = np.random.normal(1, 0.3, n_per_class)
-
-    points = []
-    for x, y in zip(cluster1_x, cluster1_y):
-        points.append(Point(x=float(x), y=float(y), label=0))
-    for x, y in zip(cluster2_x, cluster2_y):
-        points.append(Point(x=float(x), y=float(y), label=1))
-
-    return points
-
-
 def select_prototypes(points: List[Point], epsilon: float) -> Tuple[List[Point], float]:
     # Group points by label
-    points_by_label = {0: [], 1: []}
+    points_by_label = {}
     for p in points:
+        if p.label not in points_by_label:
+            points_by_label[p.label] = []
         points_by_label[p.label].append(p)
 
     prototypes = []
-    for label in [0, 1]:
+    for label in points_by_label:
         class_points = points_by_label[label]
         if epsilon == float("inf"):
             # Without privacy, just use mean
@@ -93,6 +77,11 @@ def read_root():
 
 @app.post("/api/py/generate", response_model=PrototypeResponse)
 def generate_points(request: PointsRequest):
-    points = generate_2d_clusters(request.n_points)
+    # Convert TSNE and labels to Point objects
+    points = [
+        Point(x=float(x), y=float(y), label=int(label))
+        for (x, y), label in zip(DEMO_TSNE, DEMO_Y)
+    ]
+
     prototypes, accuracy = select_prototypes(points, request.epsilon)
     return PrototypeResponse(points=points, prototypes=prototypes, accuracy=accuracy)

@@ -49,7 +49,6 @@ export default function Demo() {
         },
         body: JSON.stringify({
           epsilon: epsilon,
-          n_points: 100,
         }),
       });
       const newData = await response.json();
@@ -62,37 +61,40 @@ export default function Demo() {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [epsilon]); // Fetch new data when epsilon changes
+
+  const uniqueLabels = data 
+    ? Array.from(new Set(data.points.map(p => p.label))).sort((a, b) => a - b)
+    : [];
+
+  const colors = [
+    { light: 'rgba(255, 99, 132, 0.15)', dark: 'rgba(255, 99, 132, 1)' },
+    { light: 'rgba(53, 162, 235, 0.15)', dark: 'rgba(53, 162, 235, 1)' },
+    { light: 'rgba(75, 192, 192, 0.15)', dark: 'rgba(75, 192, 192, 1)' },
+    { light: 'rgba(255, 159, 64, 0.15)', dark: 'rgba(255, 159, 64, 1)' },
+    { light: 'rgba(153, 102, 255, 0.15)', dark: 'rgba(153, 102, 255, 1)' },
+  ];
 
   const chartData = {
-    datasets: [
-      {
-        label: 'Class 0',
-        data: data?.points.filter(p => p.label === 0).map(p => ({ x: p.x, y: p.y })) || [],
-        backgroundColor: 'rgba(255, 99, 132, 0.5)',
-        pointRadius: 4,
-      },
-      {
-        label: 'Class 1',
-        data: data?.points.filter(p => p.label === 1).map(p => ({ x: p.x, y: p.y })) || [],
-        backgroundColor: 'rgba(53, 162, 235, 0.5)',
-        pointRadius: 4,
-      },
-      {
-        label: 'Prototype 0',
-        data: data?.prototypes.filter(p => p.label === 0).map(p => ({ x: p.x, y: p.y })) || [],
-        backgroundColor: 'rgba(255, 99, 132, 1)',
+    datasets: data ? [
+      // Points for each class
+      ...uniqueLabels.map((label, i) => ({
+        label: `Class ${label}`,
+        data: data.points.filter(p => p.label === label).map(p => ({ x: p.x, y: p.y })),
+        backgroundColor: colors[i % colors.length].light,
+        pointRadius: 2,
+      })),
+      // Prototypes for each class
+      ...uniqueLabels.map((label, i) => ({
+        label: `Prototype ${label}`,
+        data: data.prototypes.filter(p => p.label === label).map(p => ({ x: p.x, y: p.y })),
+        backgroundColor: colors[i % colors.length].dark,
         pointRadius: 10,
-        pointStyle: 'star',
-      },
-      {
-        label: 'Prototype 1',
-        data: data?.prototypes.filter(p => p.label === 1).map(p => ({ x: p.x, y: p.y })) || [],
-        backgroundColor: 'rgba(53, 162, 235, 1)',
-        pointRadius: 10,
-        pointStyle: 'star',
-      },
-    ],
+        pointStyle: 'rectRot',
+        borderColor: colors[i % colors.length].dark,
+        borderWidth: 2,
+      })),
+    ] : [],
   };
 
   const options = {
@@ -100,17 +102,33 @@ export default function Demo() {
       x: {
         type: 'linear' as const,
         position: 'bottom' as const,
+        grid: {
+          display: false,
+        },
+        ticks: {
+          display: false,
+        },
       },
       y: {
         type: 'linear' as const,
+        grid: {
+          display: false,
+        },
+        ticks: {
+          display: false,
+        },
       },
     },
     plugins: {
       legend: {
-        position: 'top' as const,
+        display: false,
+      },
+      tooltip: {
+        enabled: false,
       },
     },
     aspectRatio: 1,
+    maintainAspectRatio: false,
   };
 
   const handleSliderChange = (values: number[]) => {
@@ -120,14 +138,15 @@ export default function Demo() {
 
   return (
     <Card className="w-full max-w-4xl mx-auto">
-      <CardHeader>
-        <CardTitle>Interactive Demo: Privacy-Preserving Prototypes</CardTitle>
+      <CardHeader className="pb-4">
+        <CardTitle className="text-xl">Interactive Demo: Privacy-Preserving Prototypes</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-8">
-          <div className="space-y-4">
-            <div className="flex items-center gap-4">
-              <div className="flex-grow">
+        <div className="grid grid-cols-[250px,1fr] gap-8">
+          {/* Controls */}
+          <div className="space-y-6">
+            <div className="space-y-4">
+              <div className="space-y-2">
                 <label className="text-sm font-medium">
                   Privacy Level (ε): {epsilon === Infinity ? '∞' : epsilon.toFixed(2)}
                 </label>
@@ -143,26 +162,26 @@ export default function Demo() {
               <Button
                 variant="outline"
                 onClick={() => setEpsilon(epsilon === Infinity ? 1 : Infinity)}
+                className="w-full"
               >
                 Toggle ∞
               </Button>
             </div>
-            <Button onClick={fetchData} disabled={loading}>
-              {loading ? 'Generating...' : 'Generate New Data'}
-            </Button>
+            
+            {data && (
+              <div>
+                <h3 className="text-sm font-medium mb-1">Classification Accuracy</h3>
+                <p className="text-2xl font-bold text-primary">
+                  {(data.accuracy * 100).toFixed(1)}%
+                </p>
+              </div>
+            )}
           </div>
-          
-          <div className="aspect-square w-full">
+
+          {/* Chart */}
+          <div className="h-[400px] bg-muted/5 rounded-lg p-4">
             <Scatter options={options} data={chartData} />
           </div>
-          
-          {data && (
-            <div className="text-center">
-              <p className="text-lg font-medium">
-                Classification Accuracy: {(data.accuracy * 100).toFixed(1)}%
-              </p>
-            </div>
-          )}
         </div>
       </CardContent>
     </Card>
